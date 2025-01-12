@@ -1,60 +1,75 @@
+const unwatchedLectureSelector = "#app > section > aside > div > div > button";
+const firstUnwatchedLectureSelector = "#portal-container > div > div > div > div > div > ul > li:nth-child(1) > div.css-w03yth.edxwcog0 > table > tbody > tr:nth-child(1) > td.unwatched-section-button"
+const showToFirstSelector = "#portal-container > div > div > footer > button.fc-button.custom-text.css-pvcp6e"
+
+await playUnwatchedLecture()
+
 async function playUnwatchedLecture() {
-    const unwatchedLectureNode = document.querySelector("#app > section > aside > div > div > button")
-    unwatchedLectureNode.click()
-    await sleep(1)
+    await refreshWatchedHistory();
 
-    const unwatchedFirstLectureNode = document.querySelector("#portal-container > div > div > div > div > div > ul > li:nth-child(1) > div.css-w03yth.edxwcog0 > table > tbody > tr:nth-child(1) > td.unwatched-section-button")
-    if(!unwatchedFirstLectureNode){
-        console.log('재귀 종료: ' ,new Date());
-        return
+    const firstUnwatchedLectureNode = await getFirstUnwatchedLectureNode();
+    if (!firstUnwatchedLectureNode) {
+        console.log('재귀 종료: ', new Date());
+        return;
     }
-    unwatchedFirstLectureNode.click()
-    await sleep(1)
+    await clickNode(firstUnwatchedLectureNode)
 
-    const unwatchedLectureNode2 = document.querySelector("#app > section > aside > div > div > button")
-    unwatchedLectureNode2.click()
-    await sleep(1)
+    await waitToWatchingDone(firstUnwatchedLectureNode);
 
-    const unwatchedFirstLectureNode2 = document.querySelector("#portal-container > div > div > div > div > div > ul > li:nth-child(1) > div.css-w03yth.edxwcog0 > table > tbody > tr:nth-child(1) > td.unwatched-section-button")
-    if(!unwatchedFirstLectureNode2){
-        console.log('재귀 종료: ' ,new Date());
-        return
-    }
-    unwatchedFirstLectureNode2.click()
-    await sleep(1)
-    
-    const startTimeNode = Array.from(unwatchedFirstLectureNode.childNodes)[1].nodeValue
-    const endTimeNode = Array.from(unwatchedFirstLectureNode.childNodes)[3].nodeValue
-    const diffInSeconds = getTimeDifferenceInSeconds(endTimeNode, startTimeNode)
-    
-    console.log(`${startTimeNode} ~ ${endTimeNode} : ${diffInSeconds} 초 대기`);
-    await sleep(diffInSeconds / 2 + 1) // 2배속으로 재생.
-
-    const showToFirstNode = document.querySelector("#portal-container > div > div > footer > button.fc-button.custom-text.css-pvcp6e")
-    if(showToFirstNode){
-        showToFirstNode.click()
-        await sleep(1)
-    }
-
-    playUnwatchedLecture()
+    await playUnwatchedLecture();
 }
-playUnwatchedLecture()
 
-function sleep(second) {
-    return new Promise(resolve => setTimeout(resolve, second * 1000));
+async function refreshWatchedHistory() {
+    const unwatchedFirstLectorNode = await getFirstUnwatchedLectureNode();
+    if (unwatchedFirstLectorNode) {
+        await clickNode(unwatchedFirstLectorNode)
+    }
+}
+
+async function getFirstUnwatchedLectureNode() {
+    const unwatchedLectureNode = document.querySelector(unwatchedLectureSelector);
+    await clickNode(unwatchedLectureNode);
+
+    return document.querySelector(firstUnwatchedLectureSelector)
+}
+
+async function waitToWatchingDone(firstUnwatchedLectureNode) {
+    const startTimeNode = Array.from(firstUnwatchedLectureNode.childNodes)[1].nodeValue
+    const endTimeNode = Array.from(firstUnwatchedLectureNode.childNodes)[3].nodeValue
+    const diffInSeconds = getTimeDifferenceInSeconds(endTimeNode, startTimeNode)
+
+    const waitSeconds = diffInSeconds / 2 // 배속고려(2배속으로 본다고 가정)
+    console.log(`${startTimeNode} ~ ${endTimeNode} : ${waitSeconds} 초 강의 재생`);
+
+    await sleep(waitSeconds + 1)
+
+    await removeWatchToFirstModal()
+}
+
+async function removeWatchToFirstModal() {
+    const showToFirstNode = document.querySelector(showToFirstSelector)
+    if (showToFirstNode) {
+        await clickNode(showToFirstNode)
+    }
 }
 
 function getTimeDifferenceInSeconds(time1, time2) {
-    // 시간 문자열을 "시:분:초"로 분리
     const [hours1, minutes1, seconds1] = time1.split(":").map(Number);
     const [hours2, minutes2, seconds2] = time2.split(":").map(Number);
-  
-    // 각 시간을 초 단위로 변환
+
     const totalSeconds1 = hours1 * 3600 + minutes1 * 60 + seconds1;
     const totalSeconds2 = hours2 * 3600 + minutes2 * 60 + seconds2;
-  
-    // 두 시간의 차이를 절대값으로 계산
-    const diffInSeconds = Math.abs(totalSeconds1 - totalSeconds2);
-  
-    return diffInSeconds
+
+    return Math.abs(totalSeconds1 - totalSeconds2);
+}
+
+async function clickNode(node) {
+    if (node?.click) {
+        node.click()
+    }
+    await sleep(1)
+}
+
+function sleep(second) {
+    return new Promise(resolve => setTimeout(resolve, second * 1000));
 }

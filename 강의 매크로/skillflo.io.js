@@ -1,6 +1,7 @@
 const unwatchedLectureSelector = "#app > section > aside > div > div > button";
 const firstUnwatchedLectureSelector = "#portal-container > div > div > div > div > div > ul > li:nth-child(1) > div.css-w03yth.edxwcog0 > table > tbody > tr:nth-child(1) > td.unwatched-section-button"
 const showToFirstSelector = "#portal-container > div > div > footer > button.fc-button.custom-text.css-pvcp6e"
+const playButtonSelector = "#kollus_player > button.vjs-big-play-button.vjs-control.default.ready"
 
 await playUnwatchedLecture()
 
@@ -34,6 +35,10 @@ async function getFirstUnwatchedLectureNode() {
 }
 
 async function waitToWatchingDone(firstUnwatchedLectureNode) {
+    const playButtonNode = document.querySelector(playButtonSelector)
+    if (playButtonNode) {
+        await clickNode(playButtonNode)
+    }
     const startTimeNode = Array.from(firstUnwatchedLectureNode.childNodes)[1].nodeValue
     const endTimeNode = Array.from(firstUnwatchedLectureNode.childNodes)[3].nodeValue
     const diffInSeconds = getTimeDifferenceInSeconds(endTimeNode, startTimeNode)
